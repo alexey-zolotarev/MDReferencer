@@ -2061,13 +2061,27 @@ namespace md_ref {
 
         static public Dictionary<string, string> GetMDHeaderKeysAndValues(List<string> list) {
             Dictionary<string, string> dic = new Dictionary<string, string>();
+
+            string prevUnfilledKey = "";
             foreach (string s in list) {
                 int colonIndex = s.IndexOf(":");
+                if (!string.IsNullOrEmpty(prevUnfilledKey)) {
+                    string sUnfilledKeyValue = s.Trim();
+                    if (!dic.Keys.Contains(prevUnfilledKey))
+                        dic.Add(prevUnfilledKey, sUnfilledKeyValue);
+                }
+
                 if (colonIndex > 0) {
                     string s1 = s.Substring(0, colonIndex).Trim().ToLower();
                     string s2 = s.Substring(colonIndex + 1).Trim();
-                    if (!dic.Keys.Contains(s1))
-                        dic.Add(s1, s2);
+                    if (s2 == ">-") {
+                        prevUnfilledKey = s1;
+                    }
+                    else {
+                            prevUnfilledKey = "";
+                        if (!dic.Keys.Contains(s1))
+                            dic.Add(s1, s2);
+                    }
                 }
             }
             return dic;
