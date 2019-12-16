@@ -3,3 +3,4 @@ md-ref/obj/
 *.dll
 *.xml
 *.bak
+.vs/

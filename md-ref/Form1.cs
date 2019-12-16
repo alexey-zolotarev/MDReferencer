@@ -2061,13 +2061,36 @@ namespace md_ref {
 
         static public Dictionary<string, string> GetMDHeaderKeysAndValues(List<string> list) {
             Dictionary<string, string> dic = new Dictionary<string, string>();
+
+            string prevKey = "";
+
             foreach (string s in list) {
-                int colonIndex = s.IndexOf(":");
-                if (colonIndex > 0) {
-                    string s1 = s.Substring(0, colonIndex).Trim().ToLower();
-                    string s2 = s.Substring(colonIndex + 1).Trim();
-                    if (!dic.Keys.Contains(s1))
-                        dic.Add(s1, s2);
+                if (s == "")
+                    continue;
+                if (s.StartsWith(" ")) {
+                    if(prevKey != "") {
+                        string prevKeyValue = "";
+                        bool res = dic.TryGetValue(prevKey, out prevKeyValue);
+                        string newKeyValue = prevKeyValue;
+                        if (prevKeyValue != "")
+                            newKeyValue = prevKeyValue + "\r\n";
+                        newKeyValue += s;
+                        dic[prevKey] = newKeyValue;
+                    }
+                }
+                else {
+                    
+                    int colonIndex = s.IndexOf(":");
+                    if (colonIndex > 0) {
+                        string s1 = s.Substring(0, colonIndex).Trim().ToLower();
+                        string s2 = s.Substring(colonIndex + 1).Trim();
+                        prevKey = s1;
+                        if(s2 == ">-") {
+                            s2 = "";
+                        }
+                        if (!dic.Keys.Contains(s1))
+                            dic.Add(s1, s2);
+                    }
                 }
             }
             return dic;
@@ -2083,17 +2106,31 @@ namespace md_ref {
             string bareUid = null;
             string bareName = null;
             string bareType = null;
+            string bareSummary = "";
 
             bool res1 = dic.TryGetValue("uid", out bareUid);
             bool res2 = dic.TryGetValue("name", out bareName);
             bool res3 = dic.TryGetValue("type", out bareType);
 
+            bool res4 = dic.TryGetValue("summary", out bareSummary);
+            if (bareSummary == null)
+                bareSummary = "";
+            bareSummary = bareSummary.Trim();
+
+            if(bareSummary.Length > 0) {
+                if (bareSummary.StartsWith("'") || bareSummary.StartsWith("\"") || bareSummary.StartsWith("`"))
+                    bareSummary = bareSummary.Substring(1, bareSummary.Length - 1);
+                if (bareSummary.EndsWith("'") || bareSummary.EndsWith("\"") || bareSummary.EndsWith("`"))
+                    bareSummary = bareSummary.Substring(0, bareSummary.Length - 1);
+                bareSummary = bareSummary.Trim();
+            }
+            
             if (!(res1 && res2 && res3)) {
                 //throw new Exception("header does not contains required attributes");
-                return ApiElementFactory.CreateApiElement(bareUid, bareName, bareType);
+                return ApiElementFactory.CreateApiElement(bareUid, bareName, bareType, bareSummary);
             }
             else {
-                elem = ApiElementFactory.CreateApiElement(bareUid, bareName, bareType);
+                elem = ApiElementFactory.CreateApiElement(bareUid, bareName, bareType, bareSummary);
             }
             return elem;
         }
@@ -2155,7 +2192,7 @@ namespace md_ref {
 
 
     public class ApiElementFactory {
-        public static BaseAPIElement CreateApiElement(string uid, string name, string typeAsString) {
+        public static BaseAPIElement CreateApiElement(string uid, string name, string typeAsString, string summary) {
             MemberType coreMemberType = BaseAPIElement.GetMemberType(typeAsString);
 
             if (coreMemberType == MemberType.Unknown) {
@@ -2167,14 +2204,14 @@ namespace md_ref {
             List<string> splitClauses = SplitUid(uid);
 
             if (IsMember(coreMemberType)) {
-                return new MemberEl(uid, name, typeAsString, coreMemberType, splitClauses);
+                return new MemberEl(uid, name, typeAsString, coreMemberType, splitClauses, summary);
             }
             if (IsClass(coreMemberType))
-                return new ClassEl(uid, name, typeAsString, coreMemberType, splitClauses);
+                return new ClassEl(uid, name, typeAsString, coreMemberType, splitClauses, summary);
             if (IsNamespace(coreMemberType))
-                return new NamespaceEl(uid, name, typeAsString, coreMemberType, splitClauses);
+                return new NamespaceEl(uid, name, typeAsString, coreMemberType, splitClauses, summary);
 
-            return new BaseAPIElement(uid, name, typeAsString, coreMemberType, splitClauses);
+            return new BaseAPIElement(uid, name, typeAsString, coreMemberType, splitClauses, summary);
         }
 
         public static string RemoveArgumentsFromShortName(string s) {
@@ -2426,7 +2463,8 @@ namespace md_ref {
 
         }
 
-        public BaseAPIElement(string uid, string name, string typeAsString, MemberType memberType, List<string> splitClauses) {
+        public BaseAPIElement(string uid, string name, string typeAsString, MemberType memberType, List<string> splitClauses, string summary) {
+            Summary = summary;
             MDUid = uid;
             MDTypeAsString = typeAsString;
             MDName = name;
@@ -2530,7 +2568,7 @@ namespace md_ref {
         }
 
 
-        
+        public string Summary { get; set; }
 
 
     }
@@ -2544,7 +2582,7 @@ namespace md_ref {
 
         }
 
-        public MemberEl(string uid, string name, string typeAsString, MemberType memberType, List<string> splitClauses) : base(uid, name, typeAsString, memberType, splitClauses) {
+        public MemberEl(string uid, string name, string typeAsString, MemberType memberType, List<string> splitClauses, string summary) : base(uid, name, typeAsString, memberType, splitClauses, summary) {
             //ID = Counter++;
 
             //uid: js-ASPxClientBinaryImage.Cast.static(obj)
@@ -2658,6 +2696,7 @@ namespace md_ref {
 
             this.UIDName = this.Name;
 
+            this.Summary = "(overload) " + el.Summary;
 
 
         }
@@ -2690,7 +2729,7 @@ namespace md_ref {
 
     public class ClassEl : BaseAPIElement {
 
-        public ClassEl(string uid, string name, string typeAsString, MemberType memberType, List<string> splitClauses) : base(uid, name, typeAsString, memberType, splitClauses) {
+        public ClassEl(string uid, string name, string typeAsString, MemberType memberType, List<string> splitClauses, string summary) : base(uid, name, typeAsString, memberType, splitClauses, summary) {
             Namespace = FullName.Substring(0, FullName.Length - Name.Length - 1);
         }
         internal override ApiElementType Type {
@@ -2721,7 +2760,7 @@ namespace md_ref {
 
     public class NamespaceEl : BaseAPIElement {
 
-        public NamespaceEl(string uid, string name, string typeAsString, MemberType memberType, List<string> splitClauses) : base(uid, name, typeAsString, memberType, splitClauses) {
+        public NamespaceEl(string uid, string name, string typeAsString, MemberType memberType, List<string> splitClauses, string summary) : base(uid, name, typeAsString, memberType, splitClauses, summary) {
 
         }
         internal override ApiElementType Type {
