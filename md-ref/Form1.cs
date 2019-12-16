@@ -1,5 +1,6 @@
 ﻿using DevExpress.Data.Filtering;
 using DevExpress.Utils.Behaviors.Common;
+using DevExpress.Utils.Menu;
 using DevExpress.XtraBars;
 using DevExpress.XtraEditors;
 using DevExpress.XtraEditors.Controls;
@@ -546,13 +547,39 @@ namespace md_ref {
             view.BeforeLoadLayout += View_BeforeLoadLayout;
 
             view.CustomDrawEmptyForeground += View_CustomDrawEmptyForeground;
+
+            view.PopupMenuShowing += View_PopupMenuShowing;
+            
         }
 
+        private void View_PopupMenuShowing(object sender, PopupMenuShowingEventArgs e) {
+            GridView view = sender as GridView;
+            if (e.MenuType == DevExpress.XtraGrid.Views.Grid.GridMenuType.Row) {
+                int rowHandle = e.HitInfo.RowHandle;
+                e.Menu.Items.Clear();
+                DXMenuItem item = CreateOpenFileMenuItem(view, rowHandle);
+                
+                e.Menu.Items.Add(item);
+            }
+        }
 
+        DXMenuItem CreateOpenFileMenuItem(GridView view, int rowHandle) {
+            DXMenuItem menuItem = new DXMenuItem("&Open File", new EventHandler(OnOpenFileItemClick));
+            
+            menuItem.Tag = view.GetRow(rowHandle);
+            BaseElement el = menuItem.Tag as BaseElement;
+            menuItem.Enabled = (el != null && el.FilePath != null);
 
+            return menuItem;
+        }
 
-
-
+        void OnOpenFileItemClick(object sender, EventArgs e) {
+            DXMenuItem item = sender as DXMenuItem;
+            BaseElement el = item.Tag as BaseElement;
+            if (el != null) {
+                Process.Start(el.FilePath);
+            }
+        }
 
         private void View_CustomDrawEmptyForeground(object sender, DevExpress.XtraGrid.Views.Base.CustomDrawEventArgs e) {
 
@@ -2127,10 +2154,10 @@ namespace md_ref {
             
             if (!(res1 && res2 && res3)) {
                 //throw new Exception("header does not contains required attributes");
-                return ApiElementFactory.CreateApiElement(bareUid, bareName, bareType, bareSummary);
+                return ApiElementFactory.CreateApiElement(bareUid, bareName, bareType, bareSummary, fileInfo.FullName);
             }
             else {
-                elem = ApiElementFactory.CreateApiElement(bareUid, bareName, bareType, bareSummary);
+                elem = ApiElementFactory.CreateApiElement(bareUid, bareName, bareType, bareSummary, fileInfo.FullName);
             }
             return elem;
         }
@@ -2169,14 +2196,14 @@ namespace md_ref {
 
             if (!(res2 && res2)) {
                 //throw new Exception("Custom doc header does not contains required attributes");
-                return new CustomDocEl(bareUid, bareTitle, fileInfo.FullName);
+                return new CustomDocEl(bareUid, bareTitle, fileInfo.FullName, fileInfo.FullName);
             }
             else {
                 string shortFolder = fileInfo.FullName;
                 if (fileInfo.FullName.StartsWith(parentFolder)) {
                     shortFolder = fileInfo.FullName.Substring(parentFolder.Length + 1);
 
-                    elem = new CustomDocEl(bareUid, bareTitle, shortFolder);
+                    elem = new CustomDocEl(bareUid, bareTitle, shortFolder, fileInfo.FullName);
                 }
             }
             return elem;
@@ -2192,7 +2219,7 @@ namespace md_ref {
 
 
     public class ApiElementFactory {
-        public static BaseAPIElement CreateApiElement(string uid, string name, string typeAsString, string summary) {
+        public static BaseAPIElement CreateApiElement(string uid, string name, string typeAsString, string summary, string filePath) {
             MemberType coreMemberType = BaseAPIElement.GetMemberType(typeAsString);
 
             if (coreMemberType == MemberType.Unknown) {
@@ -2204,14 +2231,14 @@ namespace md_ref {
             List<string> splitClauses = SplitUid(uid);
 
             if (IsMember(coreMemberType)) {
-                return new MemberEl(uid, name, typeAsString, coreMemberType, splitClauses, summary);
+                return new MemberEl(uid, name, typeAsString, coreMemberType, splitClauses, summary, filePath);
             }
             if (IsClass(coreMemberType))
-                return new ClassEl(uid, name, typeAsString, coreMemberType, splitClauses, summary);
+                return new ClassEl(uid, name, typeAsString, coreMemberType, splitClauses, summary, filePath);
             if (IsNamespace(coreMemberType))
-                return new NamespaceEl(uid, name, typeAsString, coreMemberType, splitClauses, summary);
+                return new NamespaceEl(uid, name, typeAsString, coreMemberType, splitClauses, summary, filePath);
 
-            return new BaseAPIElement(uid, name, typeAsString, coreMemberType, splitClauses, summary);
+            return new BaseAPIElement(uid, name, typeAsString, coreMemberType, splitClauses, summary, filePath);
         }
 
         public static string RemoveArgumentsFromShortName(string s) {
@@ -2321,6 +2348,14 @@ namespace md_ref {
 
     public class BaseElement {
 
+        public BaseElement() {
+
+        }
+
+        public BaseElement(string filePath) {
+            this.FilePath = filePath;
+        }
+
         public string MDUid { get; set; }
         public string MDName { get; set; }
 
@@ -2366,6 +2401,10 @@ namespace md_ref {
                 return MDName;
             }
         }
+
+        public string FilePath {
+            get;set;
+        }
     }
 
 
@@ -2376,7 +2415,7 @@ namespace md_ref {
         const string Quotes = "\"";
         const string Apostr = "'";
 
-        public CustomDocEl(string uid, string name, string mdFilefolder) {
+        public CustomDocEl(string uid, string name, string mdFilefolder, string filePath) :base(filePath) {
             MdFileFolder = mdFilefolder;
             MDName = name;
 
@@ -2459,11 +2498,16 @@ namespace md_ref {
     }
 
     public class BaseAPIElement : BaseElement {
+
         public BaseAPIElement() {
 
         }
 
-        public BaseAPIElement(string uid, string name, string typeAsString, MemberType memberType, List<string> splitClauses, string summary) {
+        public BaseAPIElement(string filePath) : base(filePath) {
+
+        }
+
+        public BaseAPIElement(string uid, string name, string typeAsString, MemberType memberType, List<string> splitClauses, string summary, string filePath) :base(filePath) {
             Summary = summary;
             MDUid = uid;
             MDTypeAsString = typeAsString;
@@ -2578,11 +2622,15 @@ namespace md_ref {
 
         public static int Counter = 0;
 
-        public MemberEl() : base() {
+        public MemberEl() {
 
         }
 
-        public MemberEl(string uid, string name, string typeAsString, MemberType memberType, List<string> splitClauses, string summary) : base(uid, name, typeAsString, memberType, splitClauses, summary) {
+        public MemberEl(string filePath) : base(filePath) {
+
+        }
+
+        public MemberEl(string uid, string name, string typeAsString, MemberType memberType, List<string> splitClauses, string summary, string filePath) : base(uid, name, typeAsString, memberType, splitClauses, summary, filePath) {
             //ID = Counter++;
 
             //uid: js-ASPxClientBinaryImage.Cast.static(obj)
@@ -2677,6 +2725,8 @@ namespace md_ref {
 
     public class MemberElOverload : MemberEl {
 
+        
+
         public MemberElOverload(MemberEl el) {
             nameCore = el.Name;
 
@@ -2729,7 +2779,7 @@ namespace md_ref {
 
     public class ClassEl : BaseAPIElement {
 
-        public ClassEl(string uid, string name, string typeAsString, MemberType memberType, List<string> splitClauses, string summary) : base(uid, name, typeAsString, memberType, splitClauses, summary) {
+        public ClassEl(string uid, string name, string typeAsString, MemberType memberType, List<string> splitClauses, string summary, string filePath) : base(uid, name, typeAsString, memberType, splitClauses, summary, filePath) {
             Namespace = FullName.Substring(0, FullName.Length - Name.Length - 1);
         }
         internal override ApiElementType Type {
@@ -2760,7 +2810,7 @@ namespace md_ref {
 
     public class NamespaceEl : BaseAPIElement {
 
-        public NamespaceEl(string uid, string name, string typeAsString, MemberType memberType, List<string> splitClauses, string summary) : base(uid, name, typeAsString, memberType, splitClauses, summary) {
+        public NamespaceEl(string uid, string name, string typeAsString, MemberType memberType, List<string> splitClauses, string summary, string filePath) : base(uid, name, typeAsString, memberType, splitClauses, summary, filePath) {
 
         }
         internal override ApiElementType Type {
