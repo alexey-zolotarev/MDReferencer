@@ -1,0 +1,42 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="md_ref.Properties" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="SkinName" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="RepPath" Type="System.String" Scope="User">
+      <Value Profile="(Default)">C:\work2\WinFormsControls</Value>
+    </Setting>
+    <Setting Name="ShortcutMember" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Ctrl+Alt+M</Value>
+    </Setting>
+    <Setting Name="ShortcutClass" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Ctrl+Alt+C</Value>
+    </Setting>
+    <Setting Name="ShortcutNamespace" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Ctrl+Alt+N</Value>
+    </Setting>
+    <Setting Name="ShortcutDoc" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Ctrl+Alt+D</Value>
+    </Setting>
+    <Setting Name="DefaultFont" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Tahoma, 8.25pt</Value>
+    </Setting>
+    <Setting Name="FormSize" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="FormLocation" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="AutoMinimize" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="ServiceMode" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="UpgradeRequired" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+  </Settings>
+</SettingsFile>

@@ -1,0 +1,5 @@
+md-ref/bin/
+md-ref/obj/
+*.dll
+*.xml
+*.bak
