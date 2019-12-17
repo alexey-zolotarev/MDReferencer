@@ -1028,7 +1028,7 @@ namespace md_ref {
             string UIName = item.Tag as string;
             if (UIName != null && AvailReps.CurrentUIWorkspace.CurrentUIName != UIName) {
                 AvailReps.ShowUI(UIName);
-                AvailReps.UpdateFormCaption();
+                AvailReps.UpdateFormCaptionAndIconText();
                 //if(AvailReps.CurrentUIWorkspace != null)
                 //    propertyGridControl1.SelectedObject = AvailReps.CurrentUIWorkspace.CurrentGridView;
             }
@@ -1383,7 +1383,7 @@ namespace md_ref {
                 else
                     ShowUI(prevUIName);
 
-                UpdateFormCaption();
+                UpdateFormCaptionAndIconText(); 
 
                 IsLoadingData = false;
 
@@ -1416,8 +1416,17 @@ namespace md_ref {
             Form11.propertyGridControl1.SelectedObject = CurrentUIWorkspace.CurrentGridView;
         }
 
-        public void UpdateFormCaption() {
+        public void UpdateFormCaptionAndIconText() {
+            if(CurrentUIWorkspace == null) {
+                Form11.Text = Form1.ProgName + Form1.ProgVersion;
+                Form11.SetNotifyIconStatus(Form1.NotifyIconStatus.busy, "Something is wrong");
+                return;
+            }
             Form11.Text = CurrentUIWorkspace.ShortFolderName + " - " + CurrentUIWorkspace.CurrentUIName +  " - " + Form1.ProgName + Form1.ProgVersion;
+
+            string s = Form1.ProgName  + " - " + CurrentUIWorkspace.ShortFolderName + " - Ready";
+            Form11.SetNotifyIconStatus(Form1.NotifyIconStatus.ready, s);
+
         }
 
 
